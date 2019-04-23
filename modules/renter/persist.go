@@ -1,6 +1,7 @@
 package renter
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -274,6 +275,45 @@ func (r *Renter) managedInitPersist() error {
 	if err != nil {
 		return err
 	}
+
+	/////////////
+	// Debug
+	var siaDirUpdates, siaDirTxns, prevSiaDirUpdates int
+	var siaFileUpdates, siaFileTxns, prevSiaFileUpdates int
+	var unknownTxns, unknownUpdates int
+	for _, txn := range txns {
+		applyTxn := true
+		for _, update := range txn.Updates {
+			if siafile.IsSiaFileUpdate(update) {
+				siaFileUpdates++
+			} else if siadir.IsSiaDirUpdate(update) {
+				siaDirUpdates++
+			} else {
+				unknownUpdates++
+				applyTxn = false
+			}
+		}
+		if siaDirUpdates > prevSiaDirUpdates {
+			siaDirTxns++
+		}
+		prevSiaDirUpdates = siaDirUpdates
+		if siaFileUpdates > prevSiaFileUpdates {
+			siaFileTxns++
+		}
+		prevSiaFileUpdates = siaFileUpdates
+		if !applyTxn {
+			unknownTxns++
+		}
+	}
+	fmt.Println("## DEBUGGING THE RENTER WAL ##")
+	fmt.Println("  Total Txns:     ", len(txns))
+	fmt.Println("  Unknown Txns:   ", unknownTxns)
+	fmt.Println("  Unknown Updates:", unknownUpdates)
+	fmt.Println("  SiaDir Txns:    ", siaDirTxns)
+	fmt.Println("  SiaDir Updates: ", siaDirUpdates)
+	fmt.Println("  SiaFile Txns:   ", siaFileTxns)
+	fmt.Println("  SiaFile Updates:", siaFileUpdates)
+	///////////
 
 	// Apply unapplied wal txns before loading the persistence structure to
 	// avoid loading potentially corrupted files.
