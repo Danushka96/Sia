@@ -250,7 +250,8 @@ type Renter struct {
 func (r *Renter) Close() error {
 	r.tg.Stop()
 	r.hostDB.Close()
-	return r.hostContractor.Close()
+	r.hostContractor.Close()
+	return r.wal.Close()
 }
 
 // PriceEstimation estimates the cost in siacoins of performing various storage
